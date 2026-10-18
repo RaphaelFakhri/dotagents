@@ -705,6 +705,7 @@ When `defaultRepositorySource = "gitlab"`, shorthand sources (without dots) are 
 **Behavior:**
 - `add`: Classify the source, check for duplicates (case-insensitive), and append it to the appropriate field in `[trust]`. Creates the section if absent.
 - `remove`: Remove the source from the appropriate field (case-insensitive). Removes the field line if the array becomes empty.
+- `add` and `remove` edit inline and multiline arrays with either quote style and preserve comments. The updated config is validated before it is saved; if the edit cannot be applied, the command fails and leaves `agents.toml` unchanged.
 - `list`: Show trusted sources with their type. Use `--json` for machine-readable output.
 
 ### `dotagents doctor`

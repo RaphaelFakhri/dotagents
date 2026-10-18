@@ -271,6 +271,48 @@ describe("trust", () => {
       const config = await loadConfig(scope.configPath);
       expect(config.trust?.github_orgs ?? []).toEqual([]);
     });
+
+    it("removes single-quoted entries", async () => {
+      await writeFile(
+        scope.configPath,
+        `version = 1\n\n[trust]\ngithub_orgs = ['getsentry', 'anthropics']\n`,
+      );
+
+      await runTrustRemove({ scope, source: "getsentry" });
+
+      const config = await loadConfig(scope.configPath);
+      expect(config.trust?.github_orgs).toEqual(["anthropics"]);
+    });
+  });
+
+  it("edits multiline trust arrays and preserves comments", async () => {
+    await writeFile(
+      scope.configPath,
+      [
+        "version = 1",
+        "",
+        "[trust]",
+        "github_orgs = [",
+        '  "getsentry", # internal',
+        '  "anthropics" # vendor',
+        "]",
+        "",
+      ].join("\n"),
+    );
+
+    await runTrustAdd({ scope, source: "vercel" });
+    await runTrustRemove({ scope, source: "getsentry" });
+
+    const config = await loadConfig(scope.configPath);
+    expect(config.trust?.github_orgs).toEqual(["anthropics", "vercel"]);
+    const raw = await readFile(scope.configPath, "utf-8");
+    expect(raw).toContain("# vendor");
+    expect(raw).not.toContain("# internal");
+
+    await runTrustRemove({ scope, source: "anthropics" });
+    await runTrustRemove({ scope, source: "vercel" });
+
+    expect((await loadConfig(scope.configPath)).trust).toBeUndefined();
   });
 
   describe("getTrustList", () => {
